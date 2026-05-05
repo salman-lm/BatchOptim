@@ -1,0 +1,5 @@
+{
+  "name": "Image Batch Processor",
+  "description": "Batch process, crop, and optimize images with target file size support.",
+  "requestFramePermissions": []
+}
