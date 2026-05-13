@@ -8,6 +8,7 @@ export interface ImageItemData {
   croppedBlob?: Blob;
   status: 'idle' | 'processing' | 'done' | 'error';
   processedBlob?: Blob;
+  customName?: string;
   error?: string;
   estimatedSize?: number;
   isEstimating?: boolean;

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, Image as ImageIcon, X, Settings, Download, Trash2, Crop as CropIcon, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, X, Settings, Download, Trash2, Crop as CropIcon, CheckCircle2, AlertCircle, Loader2, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
@@ -119,6 +119,12 @@ export default function App() {
     });
   };
 
+  const renameImage = (id: string, newName: string) => {
+    setImages((prev) =>
+      prev.map((img) => (img.id === id ? { ...img, customName: newName } : img))
+    );
+  };
+
   const clearAll = () => {
     images.forEach((img) => URL.revokeObjectURL(img.previewUrl));
     setImages([]);
@@ -186,16 +192,20 @@ export default function App() {
     setIsProcessing(false);
   };
 
+  const downloadSingleImage = (img: ImageItemData) => {
+    if (!img.processedBlob) return;
+    const ext = settings.format.split('/')[1];
+    const originalName = img.file.name.split('.')[0];
+    const fileName = img.customName || `${originalName}-optimized`;
+    saveAs(img.processedBlob, `${fileName}.${ext}`);
+  };
+
   const downloadAll = async () => {
     const processedImages = images.filter((img) => img.status === 'done' && img.processedBlob);
     if (processedImages.length === 0) return;
 
     if (processedImages.length === 1) {
-      // Single file download
-      const img = processedImages[0];
-      const ext = settings.format.split('/')[1];
-      const originalName = img.file.name.split('.')[0];
-      saveAs(img.processedBlob!, `${originalName}-optimized.${ext}`);
+      downloadSingleImage(processedImages[0]);
       return;
     }
 
@@ -204,7 +214,8 @@ export default function App() {
     processedImages.forEach((img) => {
       const ext = settings.format.split('/')[1];
       const originalName = img.file.name.split('.')[0];
-      zip.file(`${originalName}-optimized.${ext}`, img.processedBlob!);
+      const fileName = img.customName || `${originalName}-optimized`;
+      zip.file(`${fileName}.${ext}`, img.processedBlob!);
     });
 
     const content = await zip.generateAsync({ type: 'blob' });
@@ -422,9 +433,16 @@ export default function App() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-zinc-200 truncate" title={img.file.name}>
-                    {img.file.name}
-                  </p>
+                  <div className="flex items-center gap-2 group/name">
+                    <input
+                      type="text"
+                      value={img.customName ?? img.file.name.split('.')[0]}
+                      onChange={(e) => renameImage(img.id, e.target.value)}
+                      className="text-sm font-medium text-zinc-200 bg-transparent border-none p-0 focus:ring-0 focus:outline-none w-full truncate border-b border-transparent hover:border-zinc-700 focus:border-emerald-500 transition-colors"
+                      placeholder="Enter filename..."
+                    />
+                    <Edit3 size={12} className="text-zinc-600 opacity-0 group-hover/name:opacity-100 transition-opacity" />
+                  </div>
                   <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
                     <span>{formatBytes(img.file.size)}</span>
                     
@@ -470,6 +488,15 @@ export default function App() {
                 <div className="flex items-center gap-2 shrink-0">
                   {img.status !== 'processing' && (
                     <>
+                      {img.status === 'done' && (
+                        <button
+                          onClick={() => downloadSingleImage(img)}
+                          className="p-2 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10 rounded-lg transition-colors"
+                          title="Download this image"
+                        >
+                          <Download size={18} />
+                        </button>
+                      )}
                       <button
                         onClick={() => setCroppingImageId(img.id)}
                         className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
